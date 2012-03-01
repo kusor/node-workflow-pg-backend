@@ -12,7 +12,7 @@ var test = require('tap').test,
     SOCKET = '/tmp/.' + uuid(),
     util = require('util'),
     async = require('async'),
-    Factory = require('workflow').Factory,
+    Factory = require('node-workflow').Factory,
     WorkflowPgBackend = require('../lib/workflow-pg-backend');
 
 var backend, factory;
