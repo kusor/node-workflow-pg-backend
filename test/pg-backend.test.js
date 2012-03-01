@@ -12,7 +12,7 @@ var test = require('tap').test,
     SOCKET = '/tmp/.' + uuid(),
     util = require('util'),
     async = require('async'),
-    Factory = require('../lib/index').Factory,
+    Factory = require('workflow').Factory,
     WorkflowPgBackend = require('../lib/workflow-pg-backend');
 
 var backend, factory;
@@ -23,14 +23,9 @@ var helper = require('./helper'),
     config = helper.config(),
     runnerId = config.runner.identifier;
 
-var pg_opts = {
-  database: 'node_workflow_test',
-  test: true
-};
-
 test('setup', function (t) {
   console.time('PostgreSQL Backend');
-  backend = new WorkflowPgBackend(pg_opts);
+  backend = new WorkflowPgBackend(config.backend.opts);
   t.ok(backend, 'backend ok');
   backend.init(function (err) {
     t.ifError(err, 'backend init error');
