@@ -3,15 +3,15 @@ over [PostgreSQL](http://www.postgresql.org/).
 
 # Installation
 
-npm install workflow-pg-backend
+npm install wf-pg-backend
 
 # Usage
 
-Add the following to the config file of your application using node-workflow:
+Add the following to the config file of your application using wf:
 
     {
       "backend": {
-        "module": "workflow-pg-backend",
+        "module": "wf-pg-backend",
         "opts": {
           "port": 5432,
           "host": "localhost",
@@ -30,7 +30,7 @@ above, you don't need to specify them since those are the default values.
 Please, note that this module will not try to create the `database` especified,
 it must exists in order to be used by this module.
 
-And that should be it. `node-workflow` REST API and Runners should take care of
+And that should be it. `wf` REST API and Runners should take care of
 properly loading the module on init.
 
 # Issues

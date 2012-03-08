@@ -12,7 +12,8 @@ var test = require('tap').test,
     SOCKET = '/tmp/.' + uuid(),
     util = require('util'),
     async = require('async'),
-    Factory = require('node-workflow').Factory,
+    wf = require('wf'),
+    Factory = wf.Factory,
     WorkflowPgBackend = require('../lib/workflow-pg-backend');
 
 var backend, factory;
@@ -96,7 +97,9 @@ test('get workflow', function (t) {
     t.ok(workflow, 'get workflow ok');
     t.equivalent(workflow, aWorkflow);
     backend.getWorkflow(uuid(), function (err, workflow) {
-      t.ok(err.match(/uuid/gi), 'unexisting workflow error');
+      t.equal(typeof (err), 'object');
+      t.equal(err.name, 'BackendResourceNotFoundError');
+      t.ok(err.message.match(/uuid/gi), 'unexisting workflow error');
       t.end();
     });
   });
@@ -492,7 +495,9 @@ test('add job info', function (t) {
       {'10%': 'Task completed step one'},
       function (err) {
         t.ok(err);
-        t.equal(err, 'Job does not exist. Cannot Update.');
+        t.equal(typeof (err), 'object');
+        t.equal(err.name, 'BackendResourceNotFoundError');
+        t.equal(err.message, 'Job does not exist. Cannot Update.');
         t.end();
       });
   });
@@ -524,7 +529,9 @@ test('get job info', function (t) {
       uuid(),
       function (err, info) {
         t.ok(err);
-        t.equal(err, 'Job does not exist. Cannot get info.');
+        t.equal(typeof (err), 'object');
+        t.equal(err.name, 'BackendResourceNotFoundError');
+        t.equal(err.message, 'Job does not exist. Cannot get info.');
         t.end();
       });
   });
