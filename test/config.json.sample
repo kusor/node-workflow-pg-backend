@@ -4,7 +4,7 @@
     "opts": {
       "port": 5432,
       "host": "localhost",
-      "database:": "node_workflow_test",
+      "database": "node_workflow_test",
       "user": "postgres",
       "password": "",
       "test": true

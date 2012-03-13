@@ -573,8 +573,17 @@ test('delete workflow', function (t) {
 
 
 test('teardown', function (t) {
-  backend.quit(function () {
-    console.timeEnd('PostgreSQL Backend');
-    t.end();
-  });
+  async.forEachSeries(
+    ['drop table wf_workflows', 'drop table wf_jobs', 'drop table wf_runners'],
+    function (query, cb) {
+      backend.client.query(query, function (err, res) {
+        return cb();
+      });
+    }, function (err) {
+      backend.quit(function () {
+        console.timeEnd('PostgreSQL Backend');
+        t.end();
+      });
+
+    });
 });
