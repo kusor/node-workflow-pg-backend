@@ -24,6 +24,13 @@ var helper = require('./helper'),
     config = helper.config(),
     runnerId = config.runner.identifier;
 
+config.backend.opts.logger = {
+  streams: [ {
+    level: 'trace',
+    stream: process.stdout
+  }]
+};
+
 test('setup', function (t) {
   console.time('PostgreSQL Backend');
   backend = new WorkflowPgBackend(config.backend.opts);
