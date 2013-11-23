@@ -72,7 +72,6 @@ test('add a workflow', function (t) {
     });
 });
 
-
 test('workflow name must be unique', function (t) {
     factory.workflow({
         name: 'A workflow',
@@ -136,9 +135,10 @@ test('create job', function (t) {
         workflow: aWorkflow.uuid,
         target: '/foo/bar',
         params: {
-            a: '1',
-            b: '2'
-        }
+            foo: 'bar',
+            chicken: 'arise!'
+        },
+        locks: 'something$'
     }, function (err, job) {
         t.ifError(err, 'create job error');
         t.ok(job, 'create job ok');
@@ -165,8 +165,8 @@ test('duplicated job target', function (t) {
         workflow: aWorkflow.uuid,
         target: '/foo/bar',
         params: {
-            a: '1',
-            b: '2'
+            foo: 'bar',
+            chicken: 'arise!'
         }
     }, function (err, job) {
         t.ok(err, 'duplicated job error');
@@ -175,31 +175,43 @@ test('duplicated job target', function (t) {
 });
 
 
+test('locked job target', function (t) {
+    factory.job({
+        workflow: aWorkflow.uuid,
+        target: '/foo/something',
+        params: {
+            foo: 'bar',
+            chicken: 'arise!'
+        }
+    }, function (err, job) {
+        t.ok(err, 'locked job error');
+        t.end();
+    });
+});
+
+
 test('job with different params', function (t) {
-    // Just to make sure we can sort jobs by different timestamp:
-    setTimeout(function () {
-        factory.job({
-            workflow: aWorkflow.uuid,
-            target: '/foo/bar',
-            params: {
-                a: '2',
-                b: '1'
-            }
-        }, function (err, job) {
-            t.ifError(err, 'create job error');
-            t.ok(job, 'create job ok');
-            t.ok(job.exec_after);
-            t.equal(job.execution, 'queued');
-            t.ok(job.uuid);
-            t.ok(util.isArray(job.chain), 'job chain is array');
-            t.ok(util.isArray(job.onerror), 'job onerror is array');
-            t.ok(
-            (typeof (job.params) === 'object' && !util.isArray(job.params)),
-            'params ok');
-            anotherJob = job;
-            t.end();
-        });
-    }, 1000);
+    factory.job({
+        workflow: aWorkflow.uuid,
+        target: '/foo/bar',
+        params: {
+            foo: 'bar',
+            chicken: 'egg'
+        }
+    }, function (err, job) {
+        t.ifError(err, 'create job error');
+        t.ok(job, 'create job ok');
+        t.ok(job.exec_after);
+        t.equal(job.execution, 'queued');
+        t.ok(job.uuid);
+        t.ok(util.isArray(job.chain), 'job chain is array');
+        t.ok(util.isArray(job.onerror), 'job onerror is array');
+        t.ok(
+        (typeof (job.params) === 'object' && !util.isArray(job.params)),
+        'params ok');
+        anotherJob = job;
+        t.end();
+    });
 });
 
 
@@ -236,63 +248,9 @@ test('next queued job', function (t) {
 });
 
 
-test('job lock', function (t) {
-    var completed = 0;
-    var anotherUUID = uuid();
-    vasync.forEachParallel({
-        inputs: [runnerId, anotherUUID],
-        func: function (runner, cb) {
-            backend.runJob(aJob.uuid, runner, function (err, job) {
-                if (err) {
-                    cb(err);
-                } else {
-                    completed += 1;
-                    aJob = job;
-                    cb();
-                }
-            });
-        }
-    }, function (err, results) {
-        t.equal(completed, 1, 'Only one runner can lock');
-        t.ok(err, 'Expected lock error');
-        t.equal(aJob.runner_id, runnerId);
-        t.equal(aJob.execution, 'running');
-        t.end();
-    });
-});
-
-
-test('update job', function (t) {
-    aJob.chain_results = [
-        {result: 'OK', error: ''},
-        {result: 'OK', error: ''}
-    ];
-
-    backend.updateJob(aJob, function (err, job) {
-        t.ifError(err, 'update job error');
-        t.equal(job.runner_id, runnerId, 'update job runner');
-        t.equal(job.execution, 'running', 'update job status');
-        t.ok(util.isArray(job.chain_results), 'chain_results is array');
-        t.equal(2, job.chain_results.length, 'expected results number');
-        aJob = job;
-        t.end();
-  });
-});
-
-
-test('re queue job', function (t) {
-    backend.queueJob(aJob, function (err, job) {
-        t.ifError(err, 're queue job error');
-        t.ok(!job.runner_id, 're queue job runner');
-        t.equal(job.execution, 'queued', 're queue job status');
-        aJob = job;
-        t.end();
-    });
-});
-
-
 test('run job', function (t) {
     backend.runJob(aJob.uuid, runnerId, function (err, job) {
+        console.log(util.inspect(err, false, 8, true));
         t.ifError(err, 'run job error');
         backend.getRunnerJobs(runnerId, function (err, jobs) {
             t.ifError(err, 'get runner jobs err');
@@ -315,6 +273,24 @@ test('run job', function (t) {
 });
 
 
+test('update job', function (t) {
+    aJob.chain_results = [
+        {result: 'OK', error: ''},
+        {result: 'OK', error: ''}
+    ];
+
+    backend.updateJob(aJob, function (err, job) {
+        t.ifError(err, 'update job error');
+        t.equal(job.runner_id, runnerId, 'update job runner');
+        t.equal(job.execution, 'running', 'update job status');
+        t.ok(util.isArray(job.chain_results), 'chain_results is array');
+        t.equal(2, job.chain_results.length, 'expected results number');
+        aJob = job;
+        t.end();
+  });
+});
+
+
 test('finish job', function (t) {
     aJob.chain_results = [
         {result: 'OK', error: ''},
@@ -334,6 +310,23 @@ test('finish job', function (t) {
         t.ok(!job.runner_id);
         t.equal(job.execution, 'succeeded', 'finished job status');
         aJob = job;
+        t.end();
+    });
+});
+
+
+// Now that the job with the lock run, this shouldn't be locked
+test('unlocked job target', function (t) {
+    factory.job({
+        workflow: aWorkflow.uuid,
+        target: '/foo/something',
+        params: {
+            foo: 'bar',
+            chicken: 'arise!'
+        }
+    }, function (err, job) {
+        t.ifError(err, 'unlocked job error');
+        t.ok(job);
         t.end();
     });
 });
@@ -363,6 +356,7 @@ test('register runner', function (t) {
             t.ifError(err, 'register runner error');
             backend.getRunner(runnerId, function (err, res) {
                 t.ifError(err, 'get runner error');
+                t.ok(util.isDate(res), 'runner active at');
                 t.ok((res.getTime() >= d.getTime()), 'runner timestamp');
                 t.end();
             });
@@ -478,6 +472,26 @@ test('get all jobs', function (t) {
         t.ok((typeof (jobs[0].params) === 'object' &&
             !util.isArray(jobs[0].params)),
             'job params ok');
+        t.equal(jobs.length, 3);
+        t.end();
+    });
+});
+
+
+test('get all jobs searching by params', function (t) {
+    backend.getJobs({foo: 'bar'}, function (err, jobs) {
+        t.ifError(err, 'get all jobs error');
+        t.ok(jobs, 'jobs ok');
+        t.equal(jobs.length, 3);
+        t.end();
+    });
+});
+
+
+test('get some jobs searching by params', function (t) {
+    backend.getJobs({foo: 'bar', chicken: 'arise!'}, function (err, jobs) {
+        t.ifError(err, 'get all jobs error');
+        t.ok(jobs, 'jobs ok');
         t.equal(jobs.length, 2);
         t.end();
     });
@@ -485,7 +499,7 @@ test('get all jobs', function (t) {
 
 
 test('get succeeded jobs', function (t) {
-    backend.getJobs('succeeded', function (err, jobs) {
+    backend.getJobs({execution: 'succeeded'}, function (err, jobs) {
         t.ifError(err, 'get succeeded jobs error');
         t.ok(jobs, 'jobs ok');
         t.equal(jobs.length, 1);
@@ -501,11 +515,21 @@ test('get succeeded jobs', function (t) {
 });
 
 
+test('get no jobs searching by execution and params', function (t) {
+    backend.getJobs({execution: 'succeeded', foo: 'baz'}, function (err, jobs) {
+        t.ifError(err, 'get succeeded jobs error');
+        t.ok(jobs, 'jobs ok');
+        t.equal(jobs.length, 0);
+        t.end();
+    });
+});
+
+
 test('get queued jobs', function (t) {
-    backend.getJobs('queued', function (err, jobs) {
+    backend.getJobs({execution: 'queued'}, function (err, jobs) {
         t.ifError(err, 'get queued jobs error');
         t.ok(jobs, 'jobs ok');
-        t.equal(jobs.length, 1);
+        t.equal(jobs.length, 2);
         t.equal(jobs[0].execution, 'queued');
         t.ok(util.isArray(jobs[0].chain), 'jobs chain ok');
         t.ok(util.isArray(jobs[0].onerror), 'jobs onerror ok');
@@ -514,6 +538,20 @@ test('get queued jobs', function (t) {
                 !util.isArray(jobs[0].params)),
                 'job params ok');
         t.end();
+    });
+});
+
+
+test('retry job', function (t) {
+    backend.runJob(anotherJob.uuid, runnerId, function (err, job) {
+        t.ifError(err, 'retry job run job error');
+        anotherJob.execution = 'retried';
+        backend.finishJob(anotherJob, function (err, job) {
+            t.ifError(err, 'retry job error');
+            t.ok(!job.runner_id, 'retry job runner');
+            t.equal(job.execution, 'retried', 'retry job status');
+            t.end();
+        });
     });
 });
 
@@ -575,6 +613,43 @@ test('get job info', function (t) {
         });
     });
     t.end();
+});
+
+
+test('job lock', function (t) {
+    var completed = 0;
+    var anotherUUID = uuid();
+
+    factory.job({
+        workflow: aWorkflow.uuid
+    }, function (err, job) {
+        t.ifError(err, 'create job error');
+        t.ok(job, 'create job ok');
+        t.ok(job.exec_after, 'job exec_after');
+        t.equal(job.execution, 'queued', 'job queued');
+        t.ok(job.uuid, 'job uuid');
+        aJob = job;
+        vasync.forEachParallel({
+            inputs: [runnerId, anotherUUID],
+            func: function (runner, cb) {
+                backend.runJob(aJob.uuid, runner, function (err, job) {
+                    if (err) {
+                        cb(err);
+                    } else {
+                        completed += 1;
+                        aJob = job;
+                        cb();
+                    }
+                });
+            }
+        }, function (err, results) {
+            t.equal(completed, 1, 'Only one runner can lock');
+            t.ok(err, 'Expected lock error');
+            t.equal(aJob.runner_id, runnerId);
+            t.equal(aJob.execution, 'running');
+            t.end();
+        });
+    });
 });
 
 

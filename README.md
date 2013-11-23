@@ -1,6 +1,9 @@
 A backend for [node-workflow](http://kusor.github.com/node-workflow/) built
 over [PostgreSQL](http://www.postgresql.org/).
 
+Note this module uses JSON PostgreSQL data type. A version of PostgreSQL
+supporting this datatype is thereby required (9.3+).
+
 # Installation
 
 npm install wf-pg-backend
@@ -32,6 +35,11 @@ it must exists in order to be used by this module.
 
 And that should be it. `wf` REST API and Runners should take care of
 properly loading the module on init.
+
+
+# TODO:
+- Update types so everything requiring a JSON objects is of JSON type instead
+  of TEXT.
 
 # Issues
 
