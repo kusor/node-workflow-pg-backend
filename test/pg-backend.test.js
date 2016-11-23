@@ -8,7 +8,7 @@
 // or whatever the postgres user you want to run tests as.
 
 var test = require('tap').test;
-var uuid = require('node-uuid');
+var uuid = require('uuid');
 var SOCKET = '/tmp/.' + uuid();
 var util = require('util');
 var vasync = require('vasync');
